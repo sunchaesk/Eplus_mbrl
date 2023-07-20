@@ -543,6 +543,8 @@ if __name__ == "__main__":
         score = 0
         steps = 1
 
+        print('type:', type(state))
+        #sys.exit(1)
         while not done:
             print('------------------STEPS {}-----------------'.format(steps))
             action = env.action_space.sample()
