@@ -3,3 +3,4 @@ __pycache__
 output
 .ipynb_checkpoints
 training.pt
+training_data.pt

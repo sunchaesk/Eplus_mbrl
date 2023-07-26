@@ -35,7 +35,7 @@ COST_RATE = 11
 COST = 12
 
 
-pf = open('training_data.pt', 'rb')
+pf = open('training.pt', 'rb')
 buf = pickle.load(pf)
 pf.close()
 
@@ -48,39 +48,30 @@ buf_array = np.array(buf.buffer,dtype=object)
 s = buf_array[:, 0]
 a = buf_array[:, 1]
 s_p = buf_array[:, 2]
-#sys.exit(1)
 
 s_a = append_scalars_to_array(s, a)
 # have to delete from outermost index
 s_a = delete_index_to_array(s, COST)
 s_a = delete_index_to_array(s, ELEC_COOLING)
-# s_p = delete_index_to_array(s_p, COST)
-# s_p = delete_index_to_array(s_p, ELEC_COOLING)
-# indoor_y = []
-# for i in range(len(s_p)):
-#     indoor_y.append(s_p[i][INDOOR_TEMP])
-
-print('------------------')
-print('inp:', s_a[0])
-print('output:', s_p[0])
-print('------------------')
+s_p = delete_index_to_array(s_p, COST)
+s_p = delete_index_to_array(s_p, ELEC_COOLING)
+indoor_y = []
+for i in range(len(s_p))
 
 # scale/normalize the training data
-# scaler = MinMaxScaler()
-# scaler.fit(s_a)
-# s_a = scaler.transform(s_a)
-print('not-transformed:', s_a[0])
-#print('s_p:', s_p[0])
-
+normalize = True
+if normalize:
+    scaler = MinMaxScaler()
+    scaler.fit(s_a)
+    s_a = scaler.transform(s_a)
+    print('transformed:', s_a[0])
+    print('s_p:', s_p[0])
 
 def model_ElasticNet():
-    regr = ElasticNet(
-        alpha=0.1,
-        max_iter=5000,
-    )
+    regr = ElasticNet(alpha=0.1)
     print('eg:',buf.buffer[0], len(buf.buffer[0][0]))
     print('s:', s[1], len(s[1]))
-    # print('s_p:', s_p[1], len(s_p[1]))
+    print('s_p:', s_p[1], len(s_p[1]))
     # start training ElasticNet regressor
     print('######### TRAINING STARTED #######')
     regr.fit(s_a, s_p)
@@ -91,13 +82,11 @@ def model_ElasticNet():
 
 def model_MLP():
     regr = MLPRegressor(
-        hidden_layer_sizes=200,
-        max_iter=10000,
-        verbose=True
+        max_iter=10000
     )
     print('eg:',buf.buffer[0], len(buf.buffer[0][0]))
     print('s:', s[1], len(s[1]))
-    # print('s_p:', s_p[1], len(s_p[1]))
+    print('s_p:', s_p[1], len(s_p[1]))
     print('######### TRAINING STARTED #######')
     regr.fit(s_a, s_p)
     print('######### TRAINING COMPLETED #####')
@@ -107,5 +96,5 @@ def model_MLP():
 
 
 if __name__ == "__main__":
-    model_MLP()
-    # model_ElasticNet()
+    #model_MLP()
+    model_ElasticNet()

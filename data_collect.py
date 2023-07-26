@@ -117,20 +117,23 @@ if __name__ == "__main__":
 
     load = True
     if load:
-        p_f = open('training_data.pt', 'rb')
-        buf = pickle.load(p_f)
-        p_f.close()
-        print('#######################')
-        print('LOADING FROM training_data.pt...')
-        print('BUF SIZE:', len(buf.buffer))
-        print('#######################')
-        time.sleep(2)
+        try:
+            p_f = open('training_data.pt', 'rb')
+            buf = pickle.load(p_f)
+            p_f.close()
+            print('#######################')
+            print('LOADING FROM training_data.pt...')
+            print('BUF SIZE:', len(buf.buffer))
+            print('#######################')
+            time.sleep(2)
+        except:
+            print('ERROR: collecting data from scratch')
 
     start = time.time()
     env = base.EnergyPlusEnv(default_args)
     iterations = 0
     steps = 0
-    while not buf.b_full() and iterations <= 160 - 100:
+    while not buf.b_full() and iterations <= 160:
         state = env.reset()
         done = False
         print('------------------COMPLETION: {}% / Iteration {}-----------------'.format(buf.percentage_full() * 100, iterations))
@@ -148,7 +151,8 @@ if __name__ == "__main__":
 
             # NOTE: preprocess (s, a, s')
 
-            buf.add(state, action_scaled, n_state)
+            indoor_temp_n_state = n_state[INDOOR_TEMP]
+            buf.add(state, action_scaled, indoor_temp_n_state)
             #print('ACTION', action_scaled)
             state = n_state
 

@@ -1,33 +1,21 @@
 
 import base
 from base import default_args
+#from model2 import RegressionModel, input_size
 
 import os
 import sys
-import time
 
-import random
-
-import sklearn
 from sklearn.metrics import mean_squared_error
-from sklearn.preprocessing import MinMaxScaler
-from buffer import Buffer
-import numpy as np
+
 import matplotlib.pyplot as plt
 
-from joblib import load, dump
+import torch
+import torch.nn as nn
 from typing import Tuple
+import numpy as np
 
-import copy
-
-def _rescale(
-    n: int,
-    range1: Tuple[float, float],
-    range2: Tuple[float, float]
-) -> float:
-    action_nparray = np.linspace(range2[0], range2[1], (range1[1] - range1[0]))
-    #print(action_nparray)
-    return action_nparray[n]
+import pickle
 
 OUTDOOR_TEMP = 0
 INDOOR_TEMP = 1
@@ -43,13 +31,35 @@ MONTH = 10
 COST_RATE = 11
 COST = 12
 
+def _rescale(
+    n: int,
+    range1: Tuple[float, float],
+    range2: Tuple[float, float]
+) -> float:
+    action_nparray = np.linspace(range2[0], range2[1], (range1[1] - range1[0]))
+    #print(action_nparray)
+    return action_nparray[n]
+
+# Define the regression model using PyTorch
+class RegressionModel(nn.Module):
+    def __init__(self, input_size, hidden_size):
+        super(RegressionModel, self).__init__()
+        self.hidden_size = hidden_size
+        self.fc1 = nn.Linear(input_size, self.hidden_size)
+        self.output_layer = nn.Linear(self.hidden_size, 1)
+
+    def forward(self, x):
+        x = torch.relu(self.fc1(x))
+        x = self.output_layer(x)
+        return x
+
 if __name__ == "__main__":
     print(default_args)
     env = base.EnergyPlusEnv(default_args)
 
     # load trained model
-    # model = load('./model/elastic_net_save.joblib')
-    model = load('./model/regression.joblib')
+    model = RegressionModel(13, 75)
+    model.load_state_dict(torch.load('./model/regression_model.pth'))
 
     loss = []
     indoor_truth = []
@@ -83,9 +93,10 @@ if __name__ == "__main__":
             # new_n_state = copy.deepcopy(n_state)
             # new_n_state = np.delete(new_n_state, COST)
             # new_n_state = np.delete(new_n_state, ELEC_COOLING)
+            s_a = torch.tensor(s_a, dtype=torch.float32)
 
-            predicted_sp = model.predict([s_a])[0]
-            predicted_sp = n_state[1] + np.random.normal(loc=0, scale=1)
+            predicted_sp = model(s_a)
+            print(predicted_sp)
 
             # data add
             indoor_truth.append(n_state[1])
@@ -93,9 +104,10 @@ if __name__ == "__main__":
             # outdoor_truth.append(s_p_new[0])
             # outdoor_predict.append(predicted_sp[0])
 
-            t_loss = mean_squared_error([n_state[1]], [predicted_sp])
-            print(t_loss)
-            loss.append(t_loss)
+            #t_loss = mean_squared_error([n_state[1]], [predicted_sp])
+            t_loss = (n_state[1] - predicted_sp) ** 2
+            print('loss:', t_loss, 'predicted:', predicted_sp)
+            loss.append(t_loss[0])
 
     start = 100
     end = 1100

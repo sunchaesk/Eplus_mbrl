@@ -122,9 +122,12 @@ class EnergyPlusRunner:
             "outdoor_temp" : ("Site Outdoor Air Drybulb Temperature", "Environment"),
             "indoor_temp_living" : ("Zone Air Temperature", 'living_unit1'),
             'sky_diffuse_solar_ldf': ("Surface Outside Face Incident Sky Diffuse Solar Radiation Rate per Area", 'Window_ldf_1.unit1'),
+            'sky_diffuse_solar_ldb': ("Surface Outside Face Incident Sky Diffuse Solar Radiation Rate per Area", 'Window_ldb_1.unit1'),
             'sky_diffuse_solar_sdr': ("Surface Outside Face Incident Sky Diffuse Solar Radiation Rate per Area", 'Window_sdr_1.unit1'),
+            'sky_diffuse_solar_sdl': ("Surface Outside Face Incident Sky Diffuse Solar Radiation Rate per Area", 'Window_sdl_1.unit1'),
             'site_direct_solar': ("Site Direct Solar Radiation Rate per Area", "Environment"),
             'site_horizontal_infrared': ("Site Horizontal Infrared Radiation Rate per Area", "Environment"),
+            'outdoor_relative_humidity': ("Site Outdoor Air Relative Humidity", "Environment")
         }
         self.var_handles: Dict[str, int] = {}
 
@@ -238,11 +241,11 @@ class EnergyPlusRunner:
                 for key, handle
                 in self.var_handles.items()
             },
-            **{
-                key: self.x.get_meter_value(state_argument, handle)
-                for key, handle
-                in self.meter_handles.items()
-            }
+            # **{
+            #     key: self.x.get_meter_value(state_argument, handle)
+            #     for key, handle
+            #     in self.meter_handles.items()
+            # }
         }
 
         # setup simulation times
@@ -254,6 +257,7 @@ class EnergyPlusRunner:
         day_of_week = self.x.day_of_week(self.energyplus_state)
 
         # decompose hour of week to day_of_week & hour
+        self.next_obs['year'] = year
         self.next_obs['hour'] = hour
         self.next_obs['day_of_week'] = day_of_week
         self.next_obs['day'] = day
@@ -267,13 +271,13 @@ class EnergyPlusRunner:
         # self.next_obs['prev_actuator_value'] = self.prev_actuator_value
 
         # hour of week observation value
-        b_hour_of_week_obs = True
+        b_hour_of_week_obs = False
         if b_hour_of_week_obs:
             hour_of_week = (24 * (day_of_week - 1)) + hour
-            #self.next_obs['hour_of_week'] = hour_of_week
+            self.next_obs['hour_of_week'] = hour_of_week
 
         # cost_rate_signal
-        cost_rate = True
+        cost_rate = False
         if cost_rate:
             if day_of_week in [1, 7]:
                 # weekend pricing
@@ -295,9 +299,6 @@ class EnergyPlusRunner:
         # cost calc is based on
         # energy: joules
         # cost rate: cents
-        elec_cooling_kilowatt = (self.next_obs['elec_cooling'] / (10 * 60)) / 1000
-        cost_calc = elec_cooling_kilowatt * self.next_obs['cost_rate']
-        self.next_obs['cost'] = cost_calc
 
         # 13th: next time step cost signal
         next_time_step = _add_10_minutes(tuple([
